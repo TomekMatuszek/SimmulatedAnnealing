@@ -17,8 +17,8 @@ def SA_ui():
                 ui.column(
                     3,
                     ui.h4('Basic settings', style='text-align: center'),
-                    ui.input_file(ns("grid_file"), "Choose grid population data", accept=[".gpkg", ".shp"], multiple=False),
-                    ui.input_selectize(ns("init"), "Initial realization", ['highest population cells', 'random cells']),
+                    ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
+                    ui.input_selectize(ns("init"), "Initial position of points", ['highest population cells', 'random cells']),
                     ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
                     ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
                     ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
@@ -57,8 +57,8 @@ def GA_ui():
                         ui.column(
                             3,
                             ui.h4('Basic settings', style='text-align: center'),
-                            ui.input_file(ns("grid_file"), "Choose grid population data", accept=[".gpkg", ".shp"], multiple=False),
-                            ui.input_selectize(ns("init"), "Initial realization", ['highest population cells', 'random cells']),
+                            ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
+                            ui.input_selectize(ns("init"), "Initial position of points", ['highest population cells', 'random cells']),
                             ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
                             ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
                             ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
@@ -92,21 +92,14 @@ def GA_ui():
                         ui.column(
                             3,
                             ui.h4('SA parallelization settings', style='text-align: center'),
-                            ui.input_slider(ns("workers"), "Cores", 1, mp.cpu_count(), 1),
+                            ui.input_slider(ns("workers"), "Number of cores to use", 1, mp.cpu_count(), 1),
                             ui.input_numeric(ns("iterations"), "Number of iterations", value=100),
                             ui.hr(),
                             ui.h4('Genetic algorithm settings', style='text-align: center'),
-                            ui.input_numeric(ns("epochs"), "Number of epochs", value=1000),
+                            ui.input_numeric(ns("epochs"), "Number of epochs to evaluate", value=1000),
                             align='center',
                             style='background-color: #eeeeee; border-color: #222222'
                         ),
-                        # ui.column(
-                        #     3,
-                        #     ui.h4('Genetic algorithm settings', style='text-align: center'),
-                        #     ui.input_numeric(ns("epochs"), "Number of epochs", value=1000),
-                        #     align='center',
-                        #     style='background-color: #eeeeee; border-color: #222222'
-                        # ),
                         ui.column(
                             9,
                             ui.output_plot(ns("map"), height='600px', width='600px'),
