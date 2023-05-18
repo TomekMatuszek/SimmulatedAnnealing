@@ -3,11 +3,11 @@ name: Deploy to shinyapps.io
 on:
   push:
     branches:
-      - 'main'
+      - 'master'
   pull_request:
     types: [closed]
     branches:
-      - 'main'
+      - 'master'
 
 jobs:
   build-and-deploy:
