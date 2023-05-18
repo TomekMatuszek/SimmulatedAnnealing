@@ -1,0 +1,29 @@
+name: Deploy to shinyapps.io
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    types: [closed]
+    branches:
+      - 'main'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install rsconnect-python
+    - name: Authorize rsconnect
+      run: rsconnect add --account kemot00 --name kemot00 --token 8758739081E2CC3FAE7FE7DE51F6835F --secret ${{ secrets.SHINYAPPS_SECRET }}
+    - name: Deploy app
+      run: rsconnect deploy shiny ./SimmulatedAnnealing
