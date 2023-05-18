@@ -106,7 +106,7 @@ def GA_ui():
                             ui.output_text_verbatim(ns("result_objective_start")),
                             ui.output_text_verbatim(ns("result_objective_end")),
                         ),
-                        ui.tags.style('#GA-result_objective_start {text-align: center} #GA-map {margin: auto; display: block;}')
+                        ui.tags.style('#GA-result_objective_start {text-align: center} #GA-result_objective_end {text-align: center} #GA-map {margin: auto; display: block;}')
                     )
                 )
             )
