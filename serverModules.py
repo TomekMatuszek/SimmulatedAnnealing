@@ -77,6 +77,7 @@ def SA_server(input, output, session):
 
 @module.server
 def GA_server(input, output, session):
+    initSA = reactive.Value("")
     resultGA = reactive.Value("")
 
     @output
@@ -121,6 +122,7 @@ def GA_server(input, output, session):
 
             results.sort(key = lambda x: x[0])
             results = [r for i, r, params in results]
+            initSA.set(f'Best score from SA: {round(results[0].objective)}')
             fig, ax = results[0].plot_map()
             fig.tight_layout()
 
@@ -150,4 +152,9 @@ def GA_server(input, output, session):
     @output
     @render.text
     def result_objective_start():
+        return str(initSA())
+    
+    @output
+    @render.text
+    def result_objective_end():
         return str(resultGA())
