@@ -24,6 +24,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install rsconnect-python
     - name: Authorize rsconnect
-      run: rsconnect add --account kemot00 --name kemot00 --token 8758739081E2CC3FAE7FE7DE51F6835F --secret ${{ secrets.SHINYAPPS_SECRET }}
+      run: rsconnect add --account kemot00 --name kemot00 --token ${{ secrets.SHINYAPPS_TOKEN }} --secret ${{ secrets.SHINYAPPS_SECRET }}
     - name: Deploy app
       run: rsconnect deploy shiny ./

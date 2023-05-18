@@ -9,7 +9,6 @@ from serverModules import SA_server, GA_server
 from algorithms import LocationAnnealing, LocationEvolution
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
-# rsconnect deploy shiny /path/to/app --name <NAME> --title my-app
 
 app_ui = ui.page_fluid(
     ui.h1(ui.HTML('<b>Simmulated annealing of shop locations</b>'), align='center'),
