@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "locale": "Polish_Poland.1250",
+  "metadata": {
+    "appmode": "python-shiny",
+    "entrypoint": "app"
+  },
+  "python": {
+    "version": "3.8.10",
+    "package_manager": {
+      "name": "pip",
+      "version": "21.3.1",
+      "package_file": "requirements.txt"
+    }
+  },
+  "files": {
+    "requirements.txt": {
+      "checksum": "dbed5df8a786d3abebcdc0efddfd0d28"
+    },
+    "algorithms.py": {
+      "checksum": "5cb1d708bda70bc2596e9488db5fa224"
+    },
+    "app.py": {
+      "checksum": "736abb2386d7760529bb0adb93926681"
+    },
+    "parallel_annealing.py": {
+      "checksum": "c0497b1c4a7da1362fd01ce9516369db"
+    },
+    "serverModules.py": {
+      "checksum": "f36f0e9e6639769978cb88ffbd939ae9"
+    },
+    "uiModules.py": {
+      "checksum": "5d40e1ed3552585fb960750e30050d96"
+    }
+  }
+}
