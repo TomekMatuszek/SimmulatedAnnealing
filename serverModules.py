@@ -39,6 +39,7 @@ def SA_server(input, output, session):
             elif input.temp_change() == 'substract':
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
+            ui.notification_show('Annealing...', duration=None, id='message')
             res = la.run(
                 init=init_method, move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
@@ -48,6 +49,7 @@ def SA_server(input, output, session):
                 temp_mult=temp_mult,
                 temp_substr=temp_substr
             )
+            ui.notification_remove('message')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
@@ -79,6 +81,7 @@ def SA_server(input, output, session):
 def GA_server(input, output, session):
     initSA = reactive.Value("")
     resultGA = reactive.Value("")
+    SA_progress = reactive.Value(0)
 
     @output
     @render.ui
@@ -109,27 +112,39 @@ def GA_server(input, output, session):
             elif input.temp_change() == 'substract':
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
+            
+            # results = []
+            # def callback_progress(result):
+            #     results.append(result)
+            #     SA_progress.set(int(SA_progress()) + 1)
+            #     p.set(result[0], message=f'Annealing... [{result[0]}/{input.iterations()}]')
 
-            pool = mp.Pool(input.workers())
-            params = (
-                init_method, str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
-                int(input.buffer()), int(input.objective()), int(input.init_temp()), temp_mult, temp_substr
-            )
-            result_objects = [pool.apply_async(parallel_annealing, args=(data, i, *params)) for i in range(0, input.iterations())]
-            results = [r.get() for r in result_objects]
-            pool.close()
-            pool.join()
+            with ui.Progress(0, int(input.iterations())) as p:
+                p.set(5, 'Preparing...')
+                pool = mp.Pool(input.workers())
+                params = (
+                    init_method, str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
+                    int(input.buffer()), int(input.objective()), int(input.init_temp()), temp_mult, temp_substr
+                )
+                p.set(10, 'Annealing...')
 
-            results.sort(key = lambda x: x[0])
-            results = [r for i, r, params in results]
-            initSA.set(f'Best score from SA: {round(results[0].objective)}')
-            fig, ax = results[0].plot_map()
-            fig.tight_layout()
+                result_objects = [pool.apply_async(parallel_annealing, args=(data, i, *params)) for i in range(0, input.iterations())]
+                # for i in range(0, input.iterations()):
+                #     pool.apply_async(parallel_annealing, args=(data, i, *params), callback=callback_progress)
+                results = [r.get() for r in result_objects]
+                pool.close()
+                pool.join()
+                p.set(50, 'Processing...')
 
-            le = LocationEvolution(data, [res.shops for res in results])
-            res = le.run(input.epochs())
+                results.sort(key = lambda x: x[0])
+                results = [r for i, r, params in results]
+                initSA.set(f'Best score from SA: {round(results[0].objective)}')
+                p.set(60, 'Evolution...')
+                le = LocationEvolution(data, [res.shops for res in results])
+                res = le.run(input.epochs())
+                p.set(95, 'Plotting...')
             proc = round(max(le.scores) / le.grid['ludnosc'].sum() * 100, 2)
-            resultGA.set(f'Population covered: {round(max(le.scores))} ({proc}%)')
+            resultGA.set(f'Population covered after GA: {round(max(le.scores))} ({proc}%)')
             le.plot_map()
 
     @output

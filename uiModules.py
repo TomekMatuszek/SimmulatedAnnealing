@@ -92,7 +92,7 @@ def GA_ui():
                         ui.column(
                             3,
                             ui.h4('SA parallelization settings', style='text-align: center'),
-                            ui.input_slider(ns("workers"), "Number of cores to use", 1, mp.cpu_count(), 1),
+                            ui.input_slider(ns("workers"), "Number of cores to use", 1, mp.cpu_count(), round(mp.cpu_count() / 2)),
                             ui.input_numeric(ns("iterations"), "Number of iterations", value=100),
                             ui.hr(),
                             ui.h4('Genetic algorithm settings', style='text-align: center'),
