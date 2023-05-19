@@ -12,6 +12,22 @@ def SA_server(input, output, session):
 
     @output
     @render.ui
+    def term_val():
+        if input.termination() == 'objective value':
+            return ui.TagList(
+                ui.input_numeric("objective", "Population objective", value=250000)
+            )
+        elif input.termination() == 'number of evaluations':
+            return ui.TagList(
+                ui.input_numeric("n_evals", "Number of evaluations", value=500)
+            )
+        elif input.termination() == 'rejected permutations':
+            return ui.TagList(
+                ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5)
+            )
+
+    @output
+    @render.ui
     def mult_substr():
         if input.temp_change() == 'multiply':
             return ui.TagList(
@@ -33,18 +49,34 @@ def SA_server(input, output, session):
             la = LocationAnnealing(data)
             init_method = str(input.init())
             init_method = 'highest' if init_method == 'highest population cells' else 'random'
+
             if input.temp_change() == 'multiply':
                 temp_mult = float(input.temp_mult())
                 temp_substr = None
             elif input.temp_change() == 'substract':
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
+
+            if input.termination() == 'objective value':
+                objective = int(input.objective())
+                n_evals = None
+                prop_rejected = None
+            elif input.termination() == 'number of evaluations':
+                objective = None
+                n_evals = int(input.n_evals())
+                prop_rejected = None
+            elif input.termination() == 'rejected permutations':
+                objective = None
+                n_evals = None
+                prop_rejected = float(input.n_rejected())
+
             ui.notification_show('Annealing...', duration=None, id='message')
             res = la.run(
                 init=init_method, move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
                 n_shops=int(input.n_shops()), buffer=int(input.buffer()),
-                objective=int(input.objective()),
+                objective=objective,
+                n_evals=n_evals, prop_rejected=prop_rejected,
                 start_temp=int(input.init_temp()),
                 temp_mult=temp_mult,
                 temp_substr=temp_substr
@@ -85,6 +117,22 @@ def GA_server(input, output, session):
 
     @output
     @render.ui
+    def term_val():
+        if input.termination() == 'objective value':
+            return ui.TagList(
+                ui.input_numeric("objective", "Population objective", value=250000)
+            )
+        elif input.termination() == 'number of evaluations':
+            return ui.TagList(
+                ui.input_numeric("n_evals", "Number of evaluations", value=500)
+            )
+        elif input.termination() == 'rejected permutations':
+            return ui.TagList(
+                ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5)
+            )
+
+    @output
+    @render.ui
     def mult_substr():
         if input.temp_change() == 'multiply':
             return ui.TagList(
@@ -112,6 +160,19 @@ def GA_server(input, output, session):
             elif input.temp_change() == 'substract':
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
+
+            if input.termination() == 'objective value':
+                objective = int(input.objective())
+                n_evals = None
+                prop_rejected = None
+            elif input.termination() == 'number of evaluations':
+                objective = None
+                n_evals = int(input.n_evals())
+                prop_rejected = None
+            elif input.termination() == 'rejected permutations':
+                objective = None
+                n_evals = None
+                prop_rejected = float(input.n_rejected())
             
             # results = []
             # def callback_progress(result):
@@ -119,12 +180,13 @@ def GA_server(input, output, session):
             #     SA_progress.set(int(SA_progress()) + 1)
             #     p.set(result[0], message=f'Annealing... [{result[0]}/{input.iterations()}]')
 
-            with ui.Progress(0, int(input.iterations())) as p:
+            with ui.Progress(0, 100) as p:
                 p.set(5, 'Preparing...')
                 pool = mp.Pool(input.workers())
                 params = (
                     init_method, str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
-                    int(input.buffer()), int(input.objective()), int(input.init_temp()), temp_mult, temp_substr
+                    int(input.buffer()), objective, n_evals, prop_rejected,
+                    int(input.init_temp()), temp_mult, temp_substr
                 )
                 p.set(10, 'Annealing...')
 
@@ -140,11 +202,11 @@ def GA_server(input, output, session):
                 results = [r for i, r, params in results]
                 initSA.set(f'Best score from SA: {round(results[0].objective)}')
                 p.set(60, 'Evolution...')
-                le = LocationEvolution(data, [res.shops for res in results])
+                le = LocationEvolution(data, [res.shops for res in results], results[0].buffer)
                 res = le.run(input.epochs())
                 p.set(95, 'Plotting...')
             proc = round(max(le.scores) / le.grid['ludnosc'].sum() * 100, 2)
-            resultGA.set(f'Population covered after GA: {round(max(le.scores))} ({proc}%)')
+            resultGA.set(f'Best score after GA: {round(max(le.scores))} ({proc}%)')
             le.plot_map()
 
     @output

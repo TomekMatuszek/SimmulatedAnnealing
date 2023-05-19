@@ -23,7 +23,9 @@ def SA_ui():
                     ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
                     ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
                     ui.input_slider(ns("neighbourhood"), "Neighbourhood range", 1, 10, 2),
-                    ui.input_numeric(ns("objective"), "Population objective", value=250000),
+                    ui.input_selectize(id=ns("termination"), label="Termination condition", choices=['objective value', 'number of evaluations', 'rejected permutations']),
+                    ui.hr(),
+                    ui.output_ui(ns("term_val")),
                     align='center',
                     style='background-color: #eeeeee; border-color: #222222'
                 ),
@@ -32,7 +34,9 @@ def SA_ui():
                     ui.h4('Temperature settings', style='text-align: center'),
                     ui.input_numeric(ns("init_temp"), "Initial temperature", value=20000),
                     ui.input_selectize(id=ns("temp_change"), label="Temperature change method", choices=['multiply', 'substract']),
+                    ui.hr(),
                     ui.output_ui(ns("mult_substr")),
+                    ui.hr(),
                     ui.output_plot(ns("temp_trend"), height='300px', width='300px'),
                     align='center',
                     style='background-color: #eeeeee; border-color: #222222'
@@ -63,7 +67,9 @@ def GA_ui():
                             ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
                             ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
                             ui.input_slider(ns("neighbourhood"), "Neighbourhood range", 1, 10, 2),
-                            ui.input_numeric(ns("objective"), "Population objective", value=250000),
+                            ui.input_selectize(id=ns("termination"), label="Termination condition", choices=['objective value', 'number of evaluations', 'rejected permutations']),
+                            ui.hr(),
+                            ui.output_ui(ns("term_val")),
                             align='center',
                             style='background-color: #eeeeee; border-color: #222222'
                         ),
@@ -72,7 +78,9 @@ def GA_ui():
                             ui.h4('Temperature settings', style='text-align: center'),
                             ui.input_numeric(ns("init_temp"), "Initial temperature", value=20000),
                             ui.input_selectize(id=ns("temp_change"), label="Temperature change method", choices=['multiply', 'substract']),
+                            ui.hr(),
                             ui.output_ui(ns("mult_substr")),
+                            ui.hr(),
                             ui.output_plot(ns("temp_trend"), height='300px', width='300px'),
                             align='center',
                             style='background-color: #eeeeee; border-color: #222222'
@@ -102,7 +110,7 @@ def GA_ui():
                         ),
                         ui.column(
                             9,
-                            ui.output_plot(ns("map"), height='600px', width='600px'),
+                            ui.output_plot(ns("map"), height='500px', width='500px'),
                             ui.output_text_verbatim(ns("result_objective_start")),
                             ui.output_text_verbatim(ns("result_objective_end")),
                         ),
