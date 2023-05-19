@@ -106,7 +106,7 @@ class LocationAnnealing(OptimizationAlgorithm):
             prob = np.exp2(-(self.objective - new_score) / self.temp)
             self.probs.append(prob)
             #print(f'Diff: {round((self.objective - new_score), 6)} Prob: {prob}')
-            accept = np.random.random(size=1) < prob
+            accept:bool = np.random.random(size=1) < prob
             if accept:
                 #print('ACCEPTED')
                 self.shops = new_version.copy(deep=True)
@@ -114,9 +114,13 @@ class LocationAnnealing(OptimizationAlgorithm):
                 self.obj_vals.append(new_score)
                 self.points[to_change["line"]] = self.points[to_change["line"]] + [to_change["point"]]
             else:
+                #print('REJECTED')
                 self.obj_vals.append(self.objective)
             return accept
-    def run(self, init='highest', move_choice='random', neighbourhood=2, n_shops=6, buffer=1500, objective=250000, start_temp=20000, temp_mult=None, temp_substr=None):
+    def run(self, init='highest', move_choice='random',
+            neighbourhood=2, n_shops=6, buffer=1500,
+            objective=None, n_evals=None, prop_rejected=0.5,
+            start_temp=0.001, temp_mult=None, temp_substr=None):
         self.temp = start_temp
         self.buffer = buffer
         self.points = {str(key):[] for key in range(1, n_shops+1)}
@@ -132,16 +136,26 @@ class LocationAnnealing(OptimizationAlgorithm):
         while True:
             new_version, to_change = self.move_shop(neighbourhood, move_choice)
             accept = self.accept_or_reject(new_version, to_change)
-            reject_count = reject_count + 1 if not accept else 0
-            #print(self.shops)
             self.temps.append(self.temp)
+            reject_count = reject_count + 1 if not accept else reject_count
             evals += 1
-            if self.temp > 100 and temp_mult is not None:
+            if self.temp > 0.005 * start_temp and temp_mult is not None:
                 self.temp *= temp_mult
-            elif self.temp > 100 and temp_substr is not None:
+            elif self.temp > 0.005 * start_temp and temp_substr is not None:
                 self.temp -= temp_substr
-            if self.objective >= objective or reject_count > 100 or evals > 500:
-                break        
+            
+            if objective is not None:
+                if self.objective >= objective:
+                    print('Objective achieved')
+                    break
+            if n_evals is not None:
+                if evals > n_evals:
+                    print('Number of evaluations done')
+                    break
+            if prop_rejected is not None:
+                if reject_count / evals > prop_rejected and evals > 50:
+                    print(f'Large proportion of rejected permutations')
+                    break
         print('DONE')
         return self
     def plot_objective(self):
