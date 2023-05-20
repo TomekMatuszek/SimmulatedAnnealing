@@ -4,11 +4,13 @@ from parallel_annealing import parallel_annealing
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import multiprocessing as mp
+import re
 import warnings
 
 @module.server
 def SA_server(input, output, session):
     result = reactive.Value("")
+    SAresult = reactive.Value(None)
 
     @output
     @render.ui
@@ -46,7 +48,8 @@ def SA_server(input, output, session):
         file = input.grid_file()
         if file is not None:
             data:gpd.GeoDataFrame = gpd.read_file(file[0]["datapath"])
-            la = LocationAnnealing(data)
+            resolution = int(re.findall('[0-9]+', file[0]["name"])[0])
+            la = LocationAnnealing(data, resolution)
             init_method = str(input.init())
             init_method = 'highest' if init_method == 'highest population cells' else 'random'
 
@@ -60,18 +63,18 @@ def SA_server(input, output, session):
             if input.termination() == 'objective value':
                 objective = int(input.objective())
                 n_evals = None
-                prop_rejected = None
+                prop_rejected = 0.95
             elif input.termination() == 'number of evaluations':
                 objective = None
                 n_evals = int(input.n_evals())
-                prop_rejected = None
+                prop_rejected = 0.95
             elif input.termination() == 'rejected permutations':
                 objective = None
                 n_evals = None
                 prop_rejected = float(input.n_rejected())
 
-            ui.notification_show('Annealing...', duration=None, id='message')
-            res = la.run(
+            ui.notification_show('Annealing...', duration=1000, id='message')
+            res, status = la.run(
                 init=init_method, move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
                 n_shops=int(input.n_shops()), buffer=int(input.buffer()),
@@ -82,6 +85,13 @@ def SA_server(input, output, session):
                 temp_substr=temp_substr
             )
             ui.notification_remove('message')
+            SAresult.set(res)
+            if status==1:
+                ui.notification_show('Population objective achieved', duration=10, id='status')
+            elif status==2:
+                ui.notification_show('Number of evaluations performed', duration=10, id='status')
+            elif status==3:
+                ui.notification_show('Exceeded proportion of rejected permutations', duration=10, id='status')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
@@ -103,6 +113,20 @@ def SA_server(input, output, session):
         
         plt.plot(values, color='red')
         plt.title('Temperature lowering trend')
+
+    @output
+    @render.plot(alt="Objective plot")
+    def obj_plot():
+        result = SAresult()
+        if result is not None:
+            result.plot_objective()
+    
+    @output
+    @render.plot(alt="Objective plot")
+    def prob_plot():
+        result = SAresult()
+        if result is not None:
+            result.plot_probs()
     
     @output
     @render.text
@@ -151,7 +175,7 @@ def GA_server(input, output, session):
         file = input.grid_file()
         if file is not None:
             data:gpd.GeoDataFrame = gpd.read_file(file[0]["datapath"])
-
+            resolution = int(re.findall('[0-9]+', file[0]["name"])[0])
             init_method = str(input.init())
             init_method = 'highest' if init_method == 'highest population cells' else 'random'
             if input.temp_change() == 'multiply':
@@ -164,11 +188,11 @@ def GA_server(input, output, session):
             if input.termination() == 'objective value':
                 objective = int(input.objective())
                 n_evals = None
-                prop_rejected = None
+                prop_rejected = 0.95
             elif input.termination() == 'number of evaluations':
                 objective = None
                 n_evals = int(input.n_evals())
-                prop_rejected = None
+                prop_rejected = 0.95
             elif input.termination() == 'rejected permutations':
                 objective = None
                 n_evals = None
@@ -179,8 +203,8 @@ def GA_server(input, output, session):
             #     results.append(result)
             #     SA_progress.set(int(SA_progress()) + 1)
             #     p.set(result[0], message=f'Annealing... [{result[0]}/{input.iterations()}]')
-
             with ui.Progress(0, 100) as p:
+                warnings.simplefilter(action='ignore', category=UserWarning)
                 p.set(5, 'Preparing...')
                 pool = mp.Pool(input.workers())
                 params = (
@@ -189,8 +213,8 @@ def GA_server(input, output, session):
                     int(input.init_temp()), temp_mult, temp_substr
                 )
                 p.set(10, 'Annealing...')
-
-                result_objects = [pool.apply_async(parallel_annealing, args=(data, i, *params)) for i in range(0, input.iterations())]
+                
+                result_objects = [pool.apply_async(parallel_annealing, args=(data, resolution, i, *params)) for i in range(0, input.iterations())]
                 # for i in range(0, input.iterations()):
                 #     pool.apply_async(parallel_annealing, args=(data, i, *params), callback=callback_progress)
                 results = [r.get() for r in result_objects]
@@ -202,7 +226,8 @@ def GA_server(input, output, session):
                 results = [r for i, r, params in results]
                 initSA.set(f'Best score from SA: {round(results[0].objective)}')
                 p.set(60, 'Evolution...')
-                le = LocationEvolution(data, [res.shops for res in results], results[0].buffer)
+                population = [res.shops for res in results]
+                le = LocationEvolution(data, resolution, population, results[0].buffer)
                 res = le.run(input.epochs())
                 p.set(95, 'Plotting...')
             proc = round(max(le.scores) / le.grid['ludnosc'].sum() * 100, 2)

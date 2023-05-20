@@ -43,8 +43,27 @@ def SA_ui():
                 ),
                 ui.column(
                     6,
-                    ui.output_plot(ns("map"), height='600px', width='600px'),
-                    ui.output_text_verbatim(ns("result_objective")),
+                    ui.navset_tab_card(
+                        ui.nav(
+                            "Result map",
+                            ui.output_plot(ns("map"), height='600px', width='600px'),
+                            ui.output_text_verbatim(ns("result_objective")),
+                        ),
+                        ui.nav(
+                            "Plots",
+                            ui.output_plot(ns("obj_plot"), height='300px', width='600px'),
+                            ui.output_plot(ns("prob_plot"), height='300px', width='600px')
+                            # ui.row(
+                            #     ui.column(
+                            #         2, ui.output_plot(ns("obj_plot"), height='300px', width='300px')
+                            #     ),
+                            #     ui.column(2),
+                            #     ui.column(
+                            #         2, ui.output_plot(ns("prob_plot"), height='300px', width='600px')
+                            #     )
+                            # )
+                        )
+                    )
                 ),
                 ui.tags.style('#SA-result_objective {text-align: center} #SA-map {margin: auto; display: block;}')
             )
