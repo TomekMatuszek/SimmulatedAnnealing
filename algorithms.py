@@ -4,13 +4,14 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 
 class OptimizationAlgorithm:
-    def __init__(self, grid:gpd.GeoDataFrame):
+    def __init__(self, grid:gpd.GeoDataFrame, resolution):
         grid['X'] = grid.geometry.centroid.x
         grid['Y'] = grid.geometry.centroid.y
         centroids = grid.copy(deep=True)
         centroids['geometry'] = centroids.geometry.centroid
         self.grid = grid
         self.centroids = centroids
+        self.resolution = resolution
         self.buffer = None
         self.shops = gpd.GeoDataFrame()
         self.points = {}
@@ -32,14 +33,14 @@ class OptimizationAlgorithm:
 
 
 class LocationAnnealing(OptimizationAlgorithm):
-    def __init__(self, grid:gpd.GeoDataFrame):
-        super().__init__(grid)
+    def __init__(self, grid:gpd.GeoDataFrame, resolution):
+        super().__init__(grid, resolution)
         self.obj_vals = []
         self.probs = []
         self.temps = []
     def get_largest_cells(self, n=6):
         largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n)
-        self.shops = largest_cells#.loc[:, ['geometry', 'X', 'Y']]
+        self.shops = largest_cells
         coords = [(obj.X, obj.Y) for i, obj in largest_cells.iterrows()]
         for i, coord in enumerate(coords):
             self.points[str(i+1)] = self.points[str(i+1)] + [coord]
@@ -56,7 +57,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         shops = self.shops.copy(deep=True)
         choice_idx = np.random.choice(self.shops.index.to_list())
         choice = self.centroids.iloc[choice_idx]
-        range = neighbourhood * 250
+        range = neighbourhood * self.resolution
         neighbors:pd.DataFrame = self.centroids[
             (self.centroids.X <= choice.X + range) & (self.centroids.X >= choice.X - range) & (self.centroids.Y <= choice.Y + range) & (self.centroids.Y >= choice.Y - range)
             & ~self.centroids.index.isin(shops.index.to_list())
@@ -100,6 +101,7 @@ class LocationAnnealing(OptimizationAlgorithm):
             self.shops = new_version.copy(deep=True)
             self.objective = new_score
             self.obj_vals.append(new_score)
+            self.probs.append(self.probs[-1] if len(self.probs) > 0 else 1)
             self.points[to_change["line"]] = self.points[to_change["line"]] + [to_change["point"]]
             return True
         else:
@@ -119,7 +121,7 @@ class LocationAnnealing(OptimizationAlgorithm):
             return accept
     def run(self, init='highest', move_choice='random',
             neighbourhood=2, n_shops=6, buffer=1500,
-            objective=None, n_evals=None, prop_rejected=0.5,
+            objective=None, n_evals=None, prop_rejected=0.9,
             start_temp=0.001, temp_mult=None, temp_substr=None):
         self.temp = start_temp
         self.buffer = buffer
@@ -146,41 +148,42 @@ class LocationAnnealing(OptimizationAlgorithm):
             
             if objective is not None:
                 if self.objective >= objective:
+                    status = 1
                     print('Objective achieved')
                     break
             if n_evals is not None:
                 if evals > n_evals:
+                    status = 2
                     print('Number of evaluations done')
                     break
             if prop_rejected is not None:
                 if reject_count / evals > prop_rejected and evals > 50:
-                    print(f'Large proportion of rejected permutations')
+                    status = 3
+                    print('Large proportion of rejected permutations')
                     break
         print('DONE')
-        return self
+        return self, status
     def plot_objective(self):
         plt.plot(self.obj_vals)
-        plt.show()
-        plt.close()
+        plt.title('Objective change')
     def plot_probs(self):
-        plt.plot(self.probs, color='black')
-        plt.show()
-        plt.close()
+        plt.plot(self.probs, color='black', linewidth=0.5)
+        plt.title('Probability change')
     def plot_temp(self):
         plt.plot(self.temps, color='red')
         plt.show()
         plt.close()
 
 class LocationEvolution(OptimizationAlgorithm):
-    def __init__(self, grid:gpd.GeoDataFrame, results:'list[gpd.GeoDataFrame]', buffer:int=1500):
-        super().__init__(grid)
+    def __init__(self, grid:gpd.GeoDataFrame, resolution:int, results:list[gpd.GeoDataFrame], buffer:int=1500):
+        super().__init__(grid, resolution)
         self.buffer = buffer
         self.population = results
         self.scores = [self.score(opt.index.to_list()) for opt in self.population]
         self.mins = []
         self.means = []
         self.maxs = []
-    def choose_parents(self) -> 'list[gpd.GeoDataFrame]':
+    def choose_parents(self) -> list[gpd.GeoDataFrame]:
         while True:
             samples = list(np.random.choice(range(0, len(self.population)), size=2, replace=False))
             parents = [self.population[i] for i in samples]
