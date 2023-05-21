@@ -1,9 +1,9 @@
 {
     "https://api.shinyapps.io": {
         "server_url": "https://api.shinyapps.io",
-        "filename": "F:\\Studia\\optymalizacja_heurystyka\\SimmulatedAnnealing\\SimmulatedAnnealing\\SimmulatedAnnealing",
-        "app_url": "https://kemot00.shinyapps.io/simmulatedannealing1/",
-        "app_id": 9155971,
+        "filename": "F:\\Studia\\optymalizacja_heurystyka\\zaliczenie\\SimmulatedAnnealing\\SimmulatedAnnealing",
+        "app_url": "https://kemot00.shinyapps.io/simmulatedannealing/",
+        "app_id": 9156119,
         "app_guid": null,
         "title": "SimmulatedAnnealing",
         "app_mode": "python-shiny",
