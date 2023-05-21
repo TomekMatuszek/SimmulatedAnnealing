@@ -98,13 +98,12 @@ def SA_server(input, output, session:Session):
             res, evals, status = la.run(params)
             ui.notification_remove('message')
             SAlocations.set(res)
-            match status:
-                case 1:
-                    ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
-                case 2:
-                    ui.notification_show(f'{evals-1} iterations performed', duration=10, id='status')
-                case 3:
-                    ui.notification_show(f'Exceeded proportion of rejected permutations after {evals-1} iterations', duration=10, id='status')
+            if status==1:
+                ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
+            elif status==2:
+                ui.notification_show(f'{evals-1} iterations performed', duration=10, id='status')
+            elif status==3:
+                ui.notification_show(f'Exceeded proportion of rejected permutations after {evals-1} iterations', duration=10, id='status')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
