@@ -18,7 +18,7 @@ def SA_ui():
                     3,
                     ui.h4('Basic settings', style='text-align: center'),
                     ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
-                    ui.input_selectize(ns("init"), "Initial position of points", ['highest population cells', 'random cells']),
+                    ui.input_selectize(ns("init"), "Initial position of points", ['random highest population cells', 'highest population cells', 'random cells']),
                     ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
                     ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
                     ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
@@ -53,15 +53,6 @@ def SA_ui():
                             "Plots",
                             ui.output_plot(ns("obj_plot"), height='300px', width='600px'),
                             ui.output_plot(ns("prob_plot"), height='300px', width='600px')
-                            # ui.row(
-                            #     ui.column(
-                            #         2, ui.output_plot(ns("obj_plot"), height='300px', width='300px')
-                            #     ),
-                            #     ui.column(2),
-                            #     ui.column(
-                            #         2, ui.output_plot(ns("prob_plot"), height='300px', width='600px')
-                            #     )
-                            # )
                         )
                     )
                 ),

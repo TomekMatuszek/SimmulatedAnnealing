@@ -1,5 +1,5 @@
 from shiny import module, render, ui, _namespaces, reactive
-from algorithms import LocationAnnealing, LocationEvolution
+from algorithms import LocationAnnealing, LocationEvolution, Parameters
 from parallel_annealing import parallel_annealing
 import matplotlib.pyplot as plt
 import geopandas as gpd
@@ -51,7 +51,12 @@ def SA_server(input, output, session):
             resolution = int(re.findall('[0-9]+', file[0]["name"])[0])
             la = LocationAnnealing(data, resolution)
             init_method = str(input.init())
-            init_method = 'highest' if init_method == 'highest population cells' else 'random'
+            if init_method == 'highest population cells':
+                init_method = 'highest'
+            elif init_method == 'random highest population cells':
+                init_method = 'random_highest'
+            else:
+                init_method = 'random'
 
             if input.temp_change() == 'multiply':
                 temp_mult = float(input.temp_mult())
@@ -72,9 +77,8 @@ def SA_server(input, output, session):
                 objective = None
                 n_evals = None
                 prop_rejected = float(input.n_rejected())
-
-            ui.notification_show('Annealing...', duration=1000, id='message')
-            res, status = la.run(
+            
+            params = Parameters(
                 init=init_method, move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
                 n_shops=int(input.n_shops()), buffer=int(input.buffer()),
@@ -84,6 +88,9 @@ def SA_server(input, output, session):
                 temp_mult=temp_mult,
                 temp_substr=temp_substr
             )
+
+            ui.notification_show('Annealing...', duration=1000, id='message')
+            res, status = la.run(params)
             ui.notification_remove('message')
             SAresult.set(res)
             if status==1:
@@ -101,8 +108,9 @@ def SA_server(input, output, session):
     @render.plot(alt="Trend")
     def temp_trend():
         init_temp = input.init_temp()
+        threshold = 0.005 * init_temp
         values = []
-        while init_temp > 100:
+        while init_temp > threshold:
             values.append(init_temp)
             if input.temp_change() == 'multiply':
                 temp_mult = input.temp_mult()
@@ -207,14 +215,14 @@ def GA_server(input, output, session):
                 warnings.simplefilter(action='ignore', category=UserWarning)
                 p.set(5, 'Preparing...')
                 pool = mp.Pool(input.workers())
-                params = (
+                params = Parameters(
                     init_method, str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
                     int(input.buffer()), objective, n_evals, prop_rejected,
                     int(input.init_temp()), temp_mult, temp_substr
                 )
                 p.set(10, 'Annealing...')
                 
-                result_objects = [pool.apply_async(parallel_annealing, args=(data, resolution, i, *params)) for i in range(0, input.iterations())]
+                result_objects = [pool.apply_async(parallel_annealing, args=(data, resolution, i, params)) for i in range(0, input.iterations())]
                 # for i in range(0, input.iterations()):
                 #     pool.apply_async(parallel_annealing, args=(data, i, *params), callback=callback_progress)
                 results = [r.get() for r in result_objects]
@@ -238,8 +246,9 @@ def GA_server(input, output, session):
     @render.plot(alt="Trend")
     def temp_trend():
         init_temp = input.init_temp()
+        threshold = 0.005 * init_temp
         values = []
-        while init_temp > 100:
+        while init_temp > threshold:
             values.append(init_temp)
             if input.temp_change() == 'multiply':
                 temp_mult = input.temp_mult()

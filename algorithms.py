@@ -2,6 +2,26 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
+
+@dataclass
+class Parameters:
+    init: str = 'highest'
+    move_choice: str = 'random'
+    neighbourhood: int = 2
+    n_shops: str = 6
+    buffer: int = 1500
+    objective: int = None
+    n_evals: int = None
+    prop_rejected: float = 0.99
+    start_temp: int = 0.001
+    temp_mult: float = None
+    temp_substr: int = None
+
+    @property
+    def values(self) -> tuple:
+        return (self.init, self.move_choice, self.neighbourhood, self.n_shops, self.buffer, self.objective, self.n_evals, self.prop_rejected, self.start_temp, self.temp_mult, self.temp_substr)
+
 
 class OptimizationAlgorithm:
     def __init__(self, grid:gpd.GeoDataFrame, resolution):
@@ -17,9 +37,9 @@ class OptimizationAlgorithm:
         self.points = {}
     def score(self, indexes):
         shops = self.centroids.iloc[indexes]
-        buffer = shops.geometry.buffer(self.buffer+1)
-        if len(indexes) > 1:
-            buffer = buffer.unary_union
+        if type(shops) == pd.Series:
+                shops = shops.to_frame()
+        buffer = shops.geometry.buffer(self.buffer+1).unary_union
         intsc_centr = self.centroids[self.centroids.geometry.intersects(buffer)]
         return intsc_centr.ludnosc.sum()
     def plot_map(self):
@@ -38,8 +58,16 @@ class LocationAnnealing(OptimizationAlgorithm):
         self.obj_vals = []
         self.probs = []
         self.temps = []
-    def get_largest_cells(self, n=6):
-        largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n)
+    def get_largest_cells(self, n=6, random=False):
+        if random:
+            largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n * 2)
+            largest_cells = largest_cells.sample(n, replace=False)
+            if type(largest_cells) == pd.Series:
+                largest_cells = largest_cells.to_frame()
+        else:
+            largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n)
+            if type(largest_cells) == pd.Series:
+                largest_cells = largest_cells.to_frame()
         self.shops = largest_cells
         coords = [(obj.X, obj.Y) for i, obj in largest_cells.iterrows()]
         for i, coord in enumerate(coords):
@@ -48,11 +76,37 @@ class LocationAnnealing(OptimizationAlgorithm):
     def get_random_cells(self, n=6):
         indexes = np.random.randint(0, self.centroids.shape[0], size=n)
         random_cells = self.centroids.iloc[indexes]
+        if type(random_cells) == pd.Series:
+            random_cells = random_cells.to_frame()
         self.shops = random_cells
         coords = [(obj.X, obj.Y) for i, obj in random_cells.iterrows()]
         for i, coord in enumerate(coords):
             self.points[str(i+1)] = self.points[str(i+1)] + [coord]
         return random_cells.index.to_list()
+    def steep_move(self, neighbors:pd.DataFrame):
+        best = 0
+        result = None
+        for i, neighbor in neighbors.iterrows():
+            objective = self.score([i])
+            if objective > best:
+                best = objective
+                result = neighbor
+        return result
+    def random_move(self, neighbors:pd.DataFrame):
+        neigh_choice = np.random.choice(neighbors.index.to_list())
+        result = self.centroids.iloc[neigh_choice]
+        return result
+    def greedy_move(self, neighbors:pd.DataFrame, choice_idx:int):
+        curObj = self.score([choice_idx])
+        result = None
+        for i, neighbor in neighbors.iterrows():
+            objective = self.score([i])
+            if objective > curObj:
+                result = neighbor
+                break
+        if result is None:
+            result = self.random_move(neighbors)
+        return result
     def move_shop(self, neighbourhood, method='random'):
         shops = self.shops.copy(deep=True)
         choice_idx = np.random.choice(self.shops.index.to_list())
@@ -63,27 +117,11 @@ class LocationAnnealing(OptimizationAlgorithm):
             & ~self.centroids.index.isin(shops.index.to_list())
         ]
         if method == 'steep':
-            best = 0
-            result = None
-            for i, neighbor in neighbors.iterrows():
-                objective = self.score([i])
-                if objective > best:
-                    best = objective
-                    result = neighbor
+            result = self.steep_move(neighbors)
         elif method == 'random':
-            neigh_choice = np.random.choice(neighbors.index.to_list())
-            result = self.centroids.iloc[neigh_choice]
+            result = self.random_move(neighbors)
         elif method == 'greedy':
-            curObj = self.score([choice_idx])
-            result = None
-            for i, neighbor in neighbors.iterrows():
-                objective = self.score([i])
-                if objective > curObj:
-                    result = neighbor
-                    break
-            if result is None:
-                neigh_choice = np.random.choice(neighbors.index.to_list())
-                result = self.centroids.iloc[neigh_choice]
+            result = self.greedy_move(neighbors, choice_idx)
         
         for key, value in self.points.items():
             prev = value[-1]
@@ -94,7 +132,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         shops.drop(choice_idx, inplace=True)
         shops = pd.concat([shops, gpd.GeoDataFrame(result.to_dict(), index=[result.name], columns=['ludnosc', 'geometry', 'X', 'Y'])])
         return shops, to_change
-    def accept_or_reject(self, new_version, to_change):
+    def accept_or_reject(self, new_version:pd.DataFrame, to_change:dict):
         new_score = self.score(new_version.index.to_list())
         print(f'{round(self.objective, 3)} vs. {round(new_score, 3)}')
         if self.objective < new_score:
@@ -119,45 +157,47 @@ class LocationAnnealing(OptimizationAlgorithm):
                 #print('REJECTED')
                 self.obj_vals.append(self.objective)
             return accept
-    def run(self, init='highest', move_choice='random',
-            neighbourhood=2, n_shops=6, buffer=1500,
-            objective=None, n_evals=None, prop_rejected=0.9,
-            start_temp=0.001, temp_mult=None, temp_substr=None):
-        self.temp = start_temp
-        self.buffer = buffer
-        self.points = {str(key):[] for key in range(1, n_shops+1)}
-        if init == 'highest':
-            init_indexes = self.get_largest_cells(n_shops)
-        elif init == "random":
-            init_indexes = self.get_random_cells(n_shops)
+    def run(self, params:Parameters):
+        self.temp = params.start_temp
+        self.buffer = params.buffer
+        self.points = {str(key):[] for key in range(1, params.n_shops+1)}
+        if params.init == 'highest':
+            init_indexes = self.get_largest_cells(params.n_shops, random=False)
+        elif params.init == 'random_highest':
+            init_indexes = self.get_largest_cells(params.n_shops, random=True)
+        elif params.init == "random":
+            init_indexes = self.get_random_cells(params.n_shops)
         else:
             raise AttributeError("Wrong method of initialization")
+        print(f'INDEXES: {init_indexes}')
         self.objective = self.score(init_indexes)
         reject_count = 0
         evals = 0
         while True:
-            new_version, to_change = self.move_shop(neighbourhood, move_choice)
+            new_version, to_change = self.move_shop(params.neighbourhood, params.move_choice)
             accept = self.accept_or_reject(new_version, to_change)
             self.temps.append(self.temp)
             reject_count = reject_count + 1 if not accept else reject_count
             evals += 1
-            if self.temp > 0.005 * start_temp and temp_mult is not None:
-                self.temp *= temp_mult
-            elif self.temp > 0.005 * start_temp and temp_substr is not None:
-                self.temp -= temp_substr
+            if self.temp > 0.005 * params.start_temp and params.temp_mult is not None:
+                self.temp *= params.temp_mult
+            elif self.temp > 0.005 * params.start_temp and params.temp_substr is not None:
+                self.temp -= params.temp_substr
             
-            if objective is not None:
-                if self.objective >= objective:
+            self.temp = 0.005 * params.start_temp if self.temp == 0 else self.temp
+            
+            if params.objective is not None:
+                if self.objective >= params.objective:
                     status = 1
                     print('Objective achieved')
                     break
-            if n_evals is not None:
-                if evals > n_evals:
+            if params.n_evals is not None:
+                if evals > params.n_evals:
                     status = 2
                     print('Number of evaluations done')
                     break
-            if prop_rejected is not None:
-                if reject_count / evals > prop_rejected and evals > 50:
+            if params.prop_rejected is not None:
+                if reject_count / evals > params.prop_rejected and evals > 50:
                     status = 3
                     print('Large proportion of rejected permutations')
                     break
