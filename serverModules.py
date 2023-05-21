@@ -163,7 +163,6 @@ def GA_server(input, output, session):
     resultSA:str = reactive.Value("")
     resultGA:str = reactive.Value("")
     GAlocations:gpd.GeoDataFrame = reactive.Value(None)
-    #SA_progress = reactive.Value(0)
 
     @output
     @render.ui
@@ -231,11 +230,6 @@ def GA_server(input, output, session):
             else:
                 prop_rejected = 0.95
             
-            # results = []
-            # def callback_progress(result):
-            #     results.append(result)
-            #     SA_progress.set(int(SA_progress()) + 1)
-            #     p.set(result[0], message=f'Annealing... [{result[0]}/{input.iterations()}]')
             with ui.Progress(0, 100) as p:
                 warnings.simplefilter(action='ignore', category=UserWarning)
                 p.set(5, 'Preparing...')
@@ -248,8 +242,6 @@ def GA_server(input, output, session):
                 p.set(10, 'Annealing...')
                 
                 result_objects = [pool.apply_async(parallel_annealing, args=(data, resolution, i, params)) for i in range(0, input.iterations())]
-                # for i in range(0, input.iterations()):
-                #     pool.apply_async(parallel_annealing, args=(data, i, *params), callback=callback_progress)
                 results = [r.get() for r in result_objects]
                 pool.close()
                 pool.join()
