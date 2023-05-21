@@ -299,6 +299,6 @@ def GA_server(input, output, session):
             ids = res.index
             x_coords = res.geometry.centroid.x
             y_coords = res.geometry.centroid.y
-            yield 'id,X,Y\n'
+            yield 'id;X;Y\n'
             for id, x, y in zip(ids, x_coords, y_coords):
-                yield f'{id},{x},{y}\n'
+                yield f'{id};{x};{y}\n'
