@@ -9,16 +9,16 @@
     "version": "3.8.10",
     "package_manager": {
       "name": "pip",
-      "version": "21.3.1",
+      "version": "21.1.1",
       "package_file": "requirements.txt"
     }
   },
   "files": {
     "requirements.txt": {
-      "checksum": "3f2b3aae79e84a15fddb33b89cddf4cd"
+      "checksum": "36d7e9f54e40d10d337a6b71d073114b"
     },
     "algorithms.py": {
-      "checksum": "74f6189785f8ef0d57d496d1a60b5641"
+      "checksum": "037db6657b48900891abf099ccb01024"
     },
     "app.py": {
       "checksum": "8a03ed04781350883065b1f12b348dfc"
@@ -27,7 +27,7 @@
       "checksum": "507886f8320ab8297cef85c4518792ea"
     },
     "serverModules.py": {
-      "checksum": "8f779d0f03bc9c3992d8735e665bde6e"
+      "checksum": "2753c9a4d788d72cde0fed3208baea8f"
     },
     "uiModules.py": {
       "checksum": "dcc0045ded2152de7c0bee112f2d03a3"
