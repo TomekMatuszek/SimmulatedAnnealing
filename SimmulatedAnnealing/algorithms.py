@@ -36,7 +36,7 @@ class OptimizationAlgorithm:
         self.buffer = None
         self.shops = gpd.GeoDataFrame()
         self.points = {}
-    def score(self, indexes:list[int]) -> int:
+    def score(self, indexes:'list[int]') -> int:
         shops = self.centroids.iloc[indexes]
         if type(shops) == pd.Series:
                 shops = shops.to_frame()
@@ -59,7 +59,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         self.obj_vals = []
         self.probs = []
         self.temps = []
-    def get_largest_cells(self, n:int=6, random:bool=False) -> list[int]:
+    def get_largest_cells(self, n:int=6, random:bool=False) -> 'list[int]':
         if random:
             largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n * 2)
             largest_cells = largest_cells.sample(n, replace=False)
@@ -74,7 +74,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         for i, coord in enumerate(coords):
             self.points[str(i+1)] = self.points[str(i+1)] + [coord]
         return largest_cells.index.to_list()
-    def get_random_cells(self, n:int=6) -> list[int]:
+    def get_random_cells(self, n:int=6) -> 'list[int]':
         indexes = np.random.randint(0, self.centroids.shape[0], size=n)
         random_cells = self.centroids.iloc[indexes]
         if type(random_cells) == pd.Series:
@@ -213,7 +213,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         plt.close()
 
 class LocationEvolution(OptimizationAlgorithm):
-    def __init__(self, grid:gpd.GeoDataFrame, resolution:int, results:list[gpd.GeoDataFrame], buffer:int=1500):
+    def __init__(self, grid:gpd.GeoDataFrame, resolution:int, results:'list[gpd.GeoDataFrame]', buffer:int=1500):
         super().__init__(grid, resolution)
         self.buffer = buffer
         self.population = results
@@ -221,14 +221,14 @@ class LocationEvolution(OptimizationAlgorithm):
         self.mins = []
         self.means = []
         self.maxs = []
-    def choose_parents(self) -> list[gpd.GeoDataFrame]:
+    def choose_parents(self) -> 'list[gpd.GeoDataFrame]':
         while True:
             samples = list(np.random.choice(range(0, len(self.population)), size=2, replace=False))
             parents = [self.population[i] for i in samples]
             if not bool(set(parents[0].index) & set(parents[1].index)):
                 break
         return parents
-    def crossover(self) -> list[gpd.GeoDataFrame]:
+    def crossover(self) -> 'list[gpd.GeoDataFrame]':
         parents = self.choose_parents()
         indexes1 = list(np.random.choice(range(0, parents[0].shape[0]), size=3, replace=False))
         indexes2 = [i for i in range(0, parents[0].shape[0]) if not i in indexes1]
@@ -237,7 +237,7 @@ class LocationEvolution(OptimizationAlgorithm):
             pd.concat([parents[0].loc[parents[0].index[indexes2]], parents[1].loc[parents[1].index[indexes1]]]),
         ]
         return offsprings
-    def replace(self, offsprings:list[gpd.GeoDataFrame]):
+    def replace(self, offsprings:'list[gpd.GeoDataFrame]'):
         worst = np.argsort(self.scores)[:2]
         for idx in sorted(worst, reverse = True):
             del self.population[idx]
