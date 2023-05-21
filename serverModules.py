@@ -10,7 +10,7 @@ import warnings
 @module.server
 def SA_server(input, output, session:Session):
     result:str = reactive.Value("")
-    SAlocations:gpd.GeoDataFrame = reactive.Value(None)
+    SAlocations:LocationAnnealing = reactive.Value(None)
 
     @output
     @render.ui
@@ -97,7 +97,7 @@ def SA_server(input, output, session:Session):
             ui.notification_show('Annealing...', duration=1000, id='message')
             res, evals, status = la.run(params)
             ui.notification_remove('message')
-            SAlocations.set(res.shops)
+            SAlocations.set(res)
             match status:
                 case 1:
                     ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
