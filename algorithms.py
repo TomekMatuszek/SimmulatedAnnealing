@@ -202,7 +202,7 @@ class LocationAnnealing(OptimizationAlgorithm):
                     print('Large proportion of rejected permutations')
                     break
         print('DONE')
-        return self, status
+        return self, evals, status
     def plot_objective(self):
         plt.plot(self.obj_vals)
         plt.title('Objective change')
