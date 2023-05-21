@@ -2,6 +2,40 @@ from shiny import module, ui
 from shiny._namespaces import resolve_id
 import multiprocessing as mp
 
+def SAconfiguration():
+    ns = resolve_id
+    return ui.column(
+        3,
+        ui.h4('Basic settings', style='text-align: center'),
+        ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
+        ui.input_selectize(ns("init"), "Initial position of points", {'random_highest':'random highest population cells', 'highest':'highest population cells', 'random':'random cells'}),
+        ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
+        ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
+        ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
+        ui.input_slider(ns("neighbourhood"), "Neighbourhood range", 1, 10, 2),
+        ui.h5('Termination conditions:'),
+        ui.input_checkbox("objective", "Objective value", False),
+        ui.input_checkbox("evals", "Number of iterations", False),
+        ui.input_checkbox("prop", "Proportion of rejected permutations", False),
+        ui.hr(),
+        ui.output_ui(ns("term_obj")),
+        ui.output_ui(ns("term_eval")),
+        ui.output_ui(ns("term_prop")),
+        align='center',
+        style='background-color: #eeeeee; border-color: #222222'
+    ), ui.column(
+        3,
+        ui.h4('Temperature settings', style='text-align: center'),
+        ui.input_numeric(ns("init_temp"), "Initial temperature", value=20000),
+        ui.input_selectize(id=ns("temp_change"), label="Temperature change method", choices=['multiply', 'substract']),
+        ui.hr(),
+        ui.output_ui(ns("mult_substr")),
+        ui.hr(),
+        ui.output_plot(ns("temp_trend"), height='300px', width='300px'),
+        align='center',
+        style='background-color: #eeeeee; border-color: #222222'
+    )
+
 @module.ui
 def SA_ui():
     ns = resolve_id
@@ -14,33 +48,7 @@ def SA_ui():
                 )
             ),
             ui.row(
-                ui.column(
-                    3,
-                    ui.h4('Basic settings', style='text-align: center'),
-                    ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
-                    ui.input_selectize(ns("init"), "Initial position of points", {'random_highest':'random highest population cells', 'highest':'highest population cells', 'random':'random cells'}),
-                    ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
-                    ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
-                    ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
-                    ui.input_slider(ns("neighbourhood"), "Neighbourhood range", 1, 10, 2),
-                    ui.input_selectize(id=ns("termination"), label="Termination condition", choices=['objective value', 'number of evaluations', 'rejected permutations'], multiple=True),
-                    ui.hr(),
-                    ui.output_ui(ns("term_val")),
-                    align='center',
-                    style='background-color: #eeeeee; border-color: #222222'
-                ),
-                ui.column(
-                    3,
-                    ui.h4('Temperature settings', style='text-align: center'),
-                    ui.input_numeric(ns("init_temp"), "Initial temperature", value=20000),
-                    ui.input_selectize(id=ns("temp_change"), label="Temperature change method", choices=['multiply', 'substract']),
-                    ui.hr(),
-                    ui.output_ui(ns("mult_substr")),
-                    ui.hr(),
-                    ui.output_plot(ns("temp_trend"), height='300px', width='300px'),
-                    align='center',
-                    style='background-color: #eeeeee; border-color: #222222'
-                ),
+                SAconfiguration(),
                 ui.column(
                     6,
                     ui.navset_tab_card(
@@ -68,33 +76,7 @@ def GA_ui():
                 ui.nav(
                     "SA configuration",
                     ui.row(
-                        ui.column(
-                            3,
-                            ui.h4('Basic settings', style='text-align: center'),
-                            ui.input_file(ns("grid_file"), "Upload grid population data", accept=[".gpkg", ".shp"], multiple=False),
-                            ui.input_selectize(ns("init"), "Initial position of points", {'random_highest':'random highest population cells', 'highest':'highest population cells', 'random':'random cells'}),
-                            ui.input_selectize(ns("movement"), "Movement scheme", ['random', 'greedy', 'steep']),
-                            ui.input_numeric(ns("n_shops"), "Number of locations", value=6),
-                            ui.input_numeric(ns("buffer"), "Radius of influence", value=1500),
-                            ui.input_slider(ns("neighbourhood"), "Neighbourhood range", 1, 10, 2),
-                            ui.input_selectize(id=ns("termination"), label="Termination condition", choices=['objective value', 'number of evaluations', 'rejected permutations'], multiple=True),
-                            ui.hr(),
-                            ui.output_ui(ns("term_val")),
-                            align='center',
-                            style='background-color: #eeeeee; border-color: #222222'
-                        ),
-                        ui.column(
-                            3,
-                            ui.h4('Temperature settings', style='text-align: center'),
-                            ui.input_numeric(ns("init_temp"), "Initial temperature", value=20000),
-                            ui.input_selectize(id=ns("temp_change"), label="Temperature change method", choices=['multiply', 'substract']),
-                            ui.hr(),
-                            ui.output_ui(ns("mult_substr")),
-                            ui.hr(),
-                            ui.output_plot(ns("temp_trend"), height='300px', width='300px'),
-                            align='center',
-                            style='background-color: #eeeeee; border-color: #222222'
-                        ),
+                        SAconfiguration(),
                         ui.tags.style('#result_objective {text-align: center} #map {margin: auto; display: block;}')
                     )
                 ),
@@ -111,7 +93,7 @@ def GA_ui():
                             3,
                             ui.h4('SA parallelization settings', style='text-align: center'),
                             ui.input_slider(ns("workers"), "Number of cores to use", 1, mp.cpu_count(), round(mp.cpu_count() / 2)),
-                            ui.input_numeric(ns("iterations"), "Number of iterations", value=100),
+                            ui.input_numeric(ns("iterations"), "Number of annealings", value=100),
                             ui.hr(),
                             ui.h4('Genetic algorithm settings', style='text-align: center'),
                             ui.input_numeric(ns("epochs"), "Number of epochs to evaluate", value=1000),

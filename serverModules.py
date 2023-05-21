@@ -14,17 +14,28 @@ def SA_server(input, output, session):
 
     @output
     @render.ui
-    def term_val():
-        objective = ui.TagList(ui.input_numeric("objective", "Population objective", value=250000))
-        evals = ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
-        prop_rejected = ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
-        if 'objective value' not in input.termination():
-            objective = None
-        if 'number of evaluations' not in input.termination():
-            evals = None
-        if 'rejected permutations' not in input.termination() :
-            prop_rejected = None
-        return objective, evals, prop_rejected
+    def term_obj():
+        if input.objective():
+            return ui.TagList(ui.input_numeric("pop_objective", "Population objective", value=250000))
+        else:
+            return None
+    
+    @output
+    @render.ui
+    def term_eval():
+        if input.evals():
+            return ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
+        else:
+            return None
+    
+    @output
+    @render.ui
+    def term_prop():
+        if input.prop() or (not input.objective() and not input.evals()):
+            ui.update_checkbox('prop', value=True)
+            return ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.95))
+        else:
+            return None
 
     @output
     @render.ui
@@ -56,18 +67,18 @@ def SA_server(input, output, session):
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
 
-            if 'objective value' in input.termination():
-                objective = int(input.objective())
+            if input.objective():
+                objective = int(input.pop_objective())
             else:
                 objective = None
-            if 'number of evaluations' in input.termination():
+            if input.evals():
                 n_evals = int(input.n_evals())
             else:
                 n_evals = None
-            if 'rejected permutations' in input.termination():
+            if input.prop():
                 prop_rejected = float(input.n_rejected())
             else:
-                prop_rejected = 0.95
+                prop_rejected = 0.999
             
             params = Parameters(
                 init=str(input.init()), move_choice=str(input.movement()),
@@ -81,15 +92,15 @@ def SA_server(input, output, session):
             )
 
             ui.notification_show('Annealing...', duration=1000, id='message')
-            res, status = la.run(params)
+            res, evals, status = la.run(params)
             ui.notification_remove('message')
             SAresult.set(res)
             if status==1:
-                ui.notification_show('Population objective achieved', duration=10, id='status')
+                ui.notification_show(f'Population objective achieved after {evals} iterations', duration=10, id='status')
             elif status==2:
-                ui.notification_show('Number of evaluations performed', duration=10, id='status')
+                ui.notification_show(f'{evals} iterations performed', duration=10, id='status')
             elif status==3:
-                ui.notification_show('Exceeded proportion of rejected permutations', duration=10, id='status')
+                ui.notification_show(f'Exceeded proportion of rejected permutations after {evals} iterations', duration=10, id='status')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
@@ -140,17 +151,28 @@ def GA_server(input, output, session):
 
     @output
     @render.ui
-    def term_val():
-        objective = ui.TagList(ui.input_numeric("objective", "Population objective", value=250000))
-        evals = ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
-        prop_rejected = ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
-        if 'objective value' not in input.termination():
-            objective = None
-        if 'number of evaluations' not in input.termination():
-            evals = None
-        if 'rejected permutations' not in input.termination() :
-            prop_rejected = None
-        return objective, evals, prop_rejected
+    def term_obj():
+        if input.objective():
+            return ui.TagList(ui.input_numeric("pop_objective", "Population objective", value=250000))
+        else:
+            return None
+    
+    @output
+    @render.ui
+    def term_eval():
+        if input.evals():
+            return ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
+        else:
+            return None
+    
+    @output
+    @render.ui
+    def term_prop():
+        if input.prop() or (not input.objective() and not input.evals()):
+            ui.update_checkbox('prop', value=True)
+            return ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
+        else:
+            return None
 
     @output
     @render.ui
@@ -180,15 +202,15 @@ def GA_server(input, output, session):
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
           
-            if 'objective value' in input.termination():
-                objective = int(input.objective())
+            if input.objective():
+                objective = int(input.pop_objective())
             else:
                 objective = None
-            if 'number of evaluations' in input.termination():
+            if input.evals():
                 n_evals = int(input.n_evals())
             else:
                 n_evals = None
-            if 'rejected permutations' in input.termination():
+            if input.prop():
                 prop_rejected = float(input.n_rejected())
             else:
                 prop_rejected = 0.95
