@@ -15,18 +15,16 @@ def SA_server(input, output, session):
     @output
     @render.ui
     def term_val():
-        if input.termination() == 'objective value':
-            return ui.TagList(
-                ui.input_numeric("objective", "Population objective", value=250000)
-            )
-        elif input.termination() == 'number of evaluations':
-            return ui.TagList(
-                ui.input_numeric("n_evals", "Number of evaluations", value=500)
-            )
-        elif input.termination() == 'rejected permutations':
-            return ui.TagList(
-                ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5)
-            )
+        objective = ui.TagList(ui.input_numeric("objective", "Population objective", value=250000))
+        evals = ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
+        prop_rejected = ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
+        if 'objective value' not in input.termination():
+            objective = None
+        if 'number of evaluations' not in input.termination():
+            evals = None
+        if 'rejected permutations' not in input.termination() :
+            prop_rejected = None
+        return objective, evals, prop_rejected
 
     @output
     @render.ui
@@ -50,13 +48,6 @@ def SA_server(input, output, session):
             data:gpd.GeoDataFrame = gpd.read_file(file[0]["datapath"])
             resolution = int(re.findall('[0-9]+', file[0]["name"])[0])
             la = LocationAnnealing(data, resolution)
-            init_method = str(input.init())
-            if init_method == 'highest population cells':
-                init_method = 'highest'
-            elif init_method == 'random highest population cells':
-                init_method = 'random_highest'
-            else:
-                init_method = 'random'
 
             if input.temp_change() == 'multiply':
                 temp_mult = float(input.temp_mult())
@@ -65,21 +56,21 @@ def SA_server(input, output, session):
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
 
-            if input.termination() == 'objective value':
+            if 'objective value' in input.termination():
                 objective = int(input.objective())
-                n_evals = None
-                prop_rejected = 0.95
-            elif input.termination() == 'number of evaluations':
+            else:
                 objective = None
+            if 'number of evaluations' in input.termination():
                 n_evals = int(input.n_evals())
-                prop_rejected = 0.95
-            elif input.termination() == 'rejected permutations':
-                objective = None
+            else:
                 n_evals = None
+            if 'rejected permutations' in input.termination():
                 prop_rejected = float(input.n_rejected())
+            else:
+                prop_rejected = 0.95
             
             params = Parameters(
-                init=init_method, move_choice=str(input.movement()),
+                init=str(input.init()), move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
                 n_shops=int(input.n_shops()), buffer=int(input.buffer()),
                 objective=objective,
@@ -150,18 +141,16 @@ def GA_server(input, output, session):
     @output
     @render.ui
     def term_val():
-        if input.termination() == 'objective value':
-            return ui.TagList(
-                ui.input_numeric("objective", "Population objective", value=250000)
-            )
-        elif input.termination() == 'number of evaluations':
-            return ui.TagList(
-                ui.input_numeric("n_evals", "Number of evaluations", value=500)
-            )
-        elif input.termination() == 'rejected permutations':
-            return ui.TagList(
-                ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5)
-            )
+        objective = ui.TagList(ui.input_numeric("objective", "Population objective", value=250000))
+        evals = ui.TagList(ui.input_numeric("n_evals", "Number of evaluations", value=500))
+        prop_rejected = ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
+        if 'objective value' not in input.termination():
+            objective = None
+        if 'number of evaluations' not in input.termination():
+            evals = None
+        if 'rejected permutations' not in input.termination() :
+            prop_rejected = None
+        return objective, evals, prop_rejected
 
     @output
     @render.ui
@@ -184,27 +173,25 @@ def GA_server(input, output, session):
         if file is not None:
             data:gpd.GeoDataFrame = gpd.read_file(file[0]["datapath"])
             resolution = int(re.findall('[0-9]+', file[0]["name"])[0])
-            init_method = str(input.init())
-            init_method = 'highest' if init_method == 'highest population cells' else 'random'
             if input.temp_change() == 'multiply':
                 temp_mult = float(input.temp_mult())
                 temp_substr = None
             elif input.temp_change() == 'substract':
                 temp_substr = int(input.temp_substr())
                 temp_mult = None
-
-            if input.termination() == 'objective value':
+          
+            if 'objective value' in input.termination():
                 objective = int(input.objective())
-                n_evals = None
-                prop_rejected = 0.95
-            elif input.termination() == 'number of evaluations':
+            else:
                 objective = None
+            if 'number of evaluations' in input.termination():
                 n_evals = int(input.n_evals())
-                prop_rejected = 0.95
-            elif input.termination() == 'rejected permutations':
-                objective = None
+            else:
                 n_evals = None
+            if 'rejected permutations' in input.termination():
                 prop_rejected = float(input.n_rejected())
+            else:
+                prop_rejected = 0.95
             
             # results = []
             # def callback_progress(result):
@@ -216,7 +203,7 @@ def GA_server(input, output, session):
                 p.set(5, 'Preparing...')
                 pool = mp.Pool(input.workers())
                 params = Parameters(
-                    init_method, str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
+                    str(input.init()), str(input.movement()), int(input.neighbourhood()), int(input.n_shops()),
                     int(input.buffer()), objective, n_evals, prop_rejected,
                     int(input.init_temp()), temp_mult, temp_substr
                 )
