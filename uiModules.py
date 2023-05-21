@@ -43,9 +43,13 @@ def SA_ui():
             "Simple simmulated annealing",
             ui.row(
                 ui.column(
-                    6,
-                    ui.p(ui.input_action_button(ns("run"), "Calculate", class_="btn-primary", width='100%')),
-                )
+                    6, ui.p(ui.input_action_button(ns("run"), "Calculate", class_="btn-primary", width='100%')),
+                ),
+                ui.column(2),
+                ui.column(
+                    2, ui.download_button(ns('download_results'), "Download results as CSV")
+                ),
+                ui.column(2),
             ),
             ui.row(
                 SAconfiguration(),
@@ -84,9 +88,11 @@ def GA_ui():
                     "GA configuration",
                     ui.row(
                         ui.column(
-                            3,
-                            ui.p(ui.input_action_button(ns("run"), "Calculate", class_="btn-primary", width='100%')),
-                        )
+                            3, ui.p(ui.input_action_button(ns("run"), "Calculate", class_="btn-primary", width='100%')),
+                        ),
+                        ui.column(3),
+                        ui.column(3, ui.download_button(ns('download_results'), "Download results as CSV")),
+                        ui.column(3)
                     ),
                     ui.row(
                         ui.column(

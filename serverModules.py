@@ -1,4 +1,4 @@
-from shiny import module, render, ui, _namespaces, reactive
+from shiny import module, render, ui, _namespaces, reactive, Session
 from algorithms import LocationAnnealing, LocationEvolution, Parameters
 from parallel_annealing import parallel_annealing
 import matplotlib.pyplot as plt
@@ -8,9 +8,9 @@ import re
 import warnings
 
 @module.server
-def SA_server(input, output, session):
+def SA_server(input, output, session:Session):
     result = reactive.Value("")
-    SAresult = reactive.Value(None)
+    SAresult:LocationAnnealing = reactive.Value(None)
 
     @output
     @render.ui
@@ -96,11 +96,11 @@ def SA_server(input, output, session):
             ui.notification_remove('message')
             SAresult.set(res)
             if status==1:
-                ui.notification_show(f'Population objective achieved after {evals} iterations', duration=10, id='status')
+                ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
             elif status==2:
-                ui.notification_show(f'{evals} iterations performed', duration=10, id='status')
+                ui.notification_show(f'{evals-1} iterations performed', duration=10, id='status')
             elif status==3:
-                ui.notification_show(f'Exceeded proportion of rejected permutations after {evals} iterations', duration=10, id='status')
+                ui.notification_show(f'Exceeded proportion of rejected permutations after {evals-1} iterations', duration=10, id='status')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
@@ -142,11 +142,23 @@ def SA_server(input, output, session):
     @render.text
     def result_objective():
         return str(result())
+    
+    @session.download(filename="results.csv")
+    def download_results():
+        res:LocationAnnealing = SAresult()
+        if res is not None:
+            ids = res.shops.index
+            x_coords = res.shops.geometry.centroid.x
+            y_coords = res.shops.geometry.centroid.y
+            yield 'id,X,Y\n'
+            for id, x, y in zip(ids, x_coords, y_coords):
+                yield f'{id},{x},{y}\n'
 
 @module.server
 def GA_server(input, output, session):
     initSA = reactive.Value("")
     resultGA = reactive.Value("")
+    GAresult = reactive.Value(None)
     SA_progress = reactive.Value(0)
 
     @output
@@ -170,7 +182,7 @@ def GA_server(input, output, session):
     def term_prop():
         if input.prop() or (not input.objective() and not input.evals()):
             ui.update_checkbox('prop', value=True)
-            return ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.5))
+            return ui.TagList(ui.input_slider("n_rejected", "Proportion of rejected permutations", 0, 1, value=0.95))
         else:
             return None
 
@@ -249,6 +261,7 @@ def GA_server(input, output, session):
                 p.set(95, 'Plotting...')
             proc = round(max(le.scores) / le.grid['ludnosc'].sum() * 100, 2)
             resultGA.set(f'Best score after GA: {round(max(le.scores))} ({proc}%)')
+            GAresult.set(res)
             le.plot_map()
 
     @output
@@ -278,3 +291,14 @@ def GA_server(input, output, session):
     @render.text
     def result_objective_end():
         return str(resultGA())
+    
+    @session.download(filename="results.csv")
+    def download_results():
+        res:gpd.GeoDataFrame = GAresult()
+        if res is not None:
+            ids = res.index
+            x_coords = res.geometry.centroid.x
+            y_coords = res.geometry.centroid.y
+            yield 'id,X,Y\n'
+            for id, x, y in zip(ids, x_coords, y_coords):
+                yield f'{id},{x},{y}\n'
