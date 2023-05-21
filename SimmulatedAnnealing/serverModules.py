@@ -148,12 +148,12 @@ def SA_server(input, output, session:Session):
     
     @session.download(filename="results.csv")
     def download_results():
-        res:gpd.GeoDataFrame = SAlocations()
+        res:LocationAnnealing = SAlocations()
         yield 'id;X;Y\n'
         if res is not None:
-            ids = res.index
-            x_coords = res.geometry.centroid.x
-            y_coords = res.geometry.centroid.y
+            ids = res.shops.index
+            x_coords = res.shops.geometry.centroid.x
+            y_coords = res.shops.geometry.centroid.y
             for id, x, y in zip(ids, x_coords, y_coords):
                 yield f'{id};{x};{y}\n'
 
