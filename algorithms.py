@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from shiny.ui import Progress
 from dataclasses import dataclass
 
 @dataclass
@@ -145,16 +146,13 @@ class LocationAnnealing(OptimizationAlgorithm):
         else:
             prob = np.exp2(-(self.objective - new_score) / self.temp)
             self.probs.append(prob)
-            #print(f'Diff: {round((self.objective - new_score), 6)} Prob: {prob}')
             accept:bool = np.random.random(size=1) < prob
             if accept:
-                #print('ACCEPTED')
                 self.shops = new_version.copy(deep=True)
                 self.objective = new_score
                 self.obj_vals.append(new_score)
                 self.points[to_change["line"]] = self.points[to_change["line"]] + [to_change["point"]]
             else:
-                #print('REJECTED')
                 self.obj_vals.append(self.objective)
             return accept
     def run(self, params:Parameters):
@@ -246,15 +244,17 @@ class LocationEvolution(OptimizationAlgorithm):
             del self.scores[idx]
         self.population += offsprings
         self.scores += [self.score(kid.index.to_list()) for kid in offsprings]
-    def run(self, epochs:int=100):
+    def run(self, epochs:int=100): 
         print(f'Min: {min(self.scores)} | Mean: {np.mean(self.scores)} | Max: {max(self.scores)}')
-        for i in range(0, epochs):
-            offsprings = self.crossover()
-            self.replace(offsprings)
-            self.mins.append(min(self.scores))
-            self.means.append(np.mean(self.scores))
-            self.maxs.append(max(self.scores))
-            print(f'Min: {min(self.scores)} | Mean: {np.mean(self.scores)} | Max: {max(self.scores)}')
+        with Progress(0, epochs) as prog:
+            for i in range(0, epochs):
+                prog.set(i, 'cross-breeding...')
+                offsprings = self.crossover()
+                self.replace(offsprings)
+                self.mins.append(min(self.scores))
+                self.means.append(np.mean(self.scores))
+                self.maxs.append(max(self.scores))
+                print(f'Min: {min(self.scores)} | Mean: {np.mean(self.scores)} | Max: {max(self.scores)}')
         
         best_idx = np.argsort(self.scores)[-1]
         best = self.population[best_idx]
