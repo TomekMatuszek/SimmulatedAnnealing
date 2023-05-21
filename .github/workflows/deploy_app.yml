@@ -26,6 +26,6 @@ jobs:
     - name: Authorize rsconnect
       run: rsconnect add --account kemot00 --name kemot00 --token ${{ secrets.SHINYAPPS_TOKEN }} --secret ${{ secrets.SHINYAPPS_SECRET }}
     - name: Write manifest file
-      run: rsconnect write-manifest shiny ./SimmulatedAnnealing
+      run: rsconnect write-manifest shiny ./SimmulatedAnnealing --overwrite
     - name: Deploy app
       run: rsconnect deploy shiny ./SimmulatedAnnealing
