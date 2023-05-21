@@ -24,7 +24,7 @@ class Parameters:
 
 
 class OptimizationAlgorithm:
-    def __init__(self, grid:gpd.GeoDataFrame, resolution):
+    def __init__(self, grid:gpd.GeoDataFrame, resolution:int):
         grid['X'] = grid.geometry.centroid.x
         grid['Y'] = grid.geometry.centroid.y
         centroids = grid.copy(deep=True)
@@ -35,7 +35,7 @@ class OptimizationAlgorithm:
         self.buffer = None
         self.shops = gpd.GeoDataFrame()
         self.points = {}
-    def score(self, indexes):
+    def score(self, indexes:list[int]) -> int:
         shops = self.centroids.iloc[indexes]
         if type(shops) == pd.Series:
                 shops = shops.to_frame()
@@ -53,12 +53,12 @@ class OptimizationAlgorithm:
 
 
 class LocationAnnealing(OptimizationAlgorithm):
-    def __init__(self, grid:gpd.GeoDataFrame, resolution):
+    def __init__(self, grid:gpd.GeoDataFrame, resolution:int):
         super().__init__(grid, resolution)
         self.obj_vals = []
         self.probs = []
         self.temps = []
-    def get_largest_cells(self, n=6, random=False):
+    def get_largest_cells(self, n:int=6, random:bool=False) -> list[int]:
         if random:
             largest_cells = self.centroids.sort_values(by=['ludnosc'], ascending=False).head(n * 2)
             largest_cells = largest_cells.sample(n, replace=False)
@@ -73,7 +73,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         for i, coord in enumerate(coords):
             self.points[str(i+1)] = self.points[str(i+1)] + [coord]
         return largest_cells.index.to_list()
-    def get_random_cells(self, n=6):
+    def get_random_cells(self, n:int=6) -> list[int]:
         indexes = np.random.randint(0, self.centroids.shape[0], size=n)
         random_cells = self.centroids.iloc[indexes]
         if type(random_cells) == pd.Series:
@@ -83,7 +83,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         for i, coord in enumerate(coords):
             self.points[str(i+1)] = self.points[str(i+1)] + [coord]
         return random_cells.index.to_list()
-    def steep_move(self, neighbors:pd.DataFrame):
+    def steep_move(self, neighbors:pd.DataFrame) -> pd.Series:
         best = 0
         result = None
         for i, neighbor in neighbors.iterrows():
@@ -92,11 +92,11 @@ class LocationAnnealing(OptimizationAlgorithm):
                 best = objective
                 result = neighbor
         return result
-    def random_move(self, neighbors:pd.DataFrame):
+    def random_move(self, neighbors:pd.DataFrame) -> pd.Series:
         neigh_choice = np.random.choice(neighbors.index.to_list())
         result = self.centroids.iloc[neigh_choice]
         return result
-    def greedy_move(self, neighbors:pd.DataFrame, choice_idx:int):
+    def greedy_move(self, neighbors:pd.DataFrame, choice_idx:int) -> pd.Series:
         curObj = self.score([choice_idx])
         result = None
         for i, neighbor in neighbors.iterrows():
@@ -107,7 +107,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         if result is None:
             result = self.random_move(neighbors)
         return result
-    def move_shop(self, neighbourhood, method='random'):
+    def move_shop(self, neighbourhood:int, method:str='random'):
         shops = self.shops.copy(deep=True)
         choice_idx = np.random.choice(self.shops.index.to_list())
         choice = self.centroids.iloc[choice_idx]
@@ -132,7 +132,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         shops.drop(choice_idx, inplace=True)
         shops = pd.concat([shops, gpd.GeoDataFrame(result.to_dict(), index=[result.name], columns=['ludnosc', 'geometry', 'X', 'Y'])])
         return shops, to_change
-    def accept_or_reject(self, new_version:pd.DataFrame, to_change:dict):
+    def accept_or_reject(self, new_version:pd.DataFrame, to_change:dict) -> bool:
         new_score = self.score(new_version.index.to_list())
         print(f'{round(self.objective, 3)} vs. {round(new_score, 3)}')
         if self.objective < new_score:
@@ -230,7 +230,7 @@ class LocationEvolution(OptimizationAlgorithm):
             if not bool(set(parents[0].index) & set(parents[1].index)):
                 break
         return parents
-    def crossover(self):
+    def crossover(self) -> list[gpd.GeoDataFrame]:
         parents = self.choose_parents()
         indexes1 = list(np.random.choice(range(0, parents[0].shape[0]), size=3, replace=False))
         indexes2 = [i for i in range(0, parents[0].shape[0]) if not i in indexes1]
@@ -239,14 +239,14 @@ class LocationEvolution(OptimizationAlgorithm):
             pd.concat([parents[0].loc[parents[0].index[indexes2]], parents[1].loc[parents[1].index[indexes1]]]),
         ]
         return offsprings
-    def replace(self, offsprings:'list[gpd.GeoDataFrame]'):
+    def replace(self, offsprings:list[gpd.GeoDataFrame]):
         worst = np.argsort(self.scores)[:2]
         for idx in sorted(worst, reverse = True):
             del self.population[idx]
             del self.scores[idx]
         self.population += offsprings
         self.scores += [self.score(kid.index.to_list()) for kid in offsprings]
-    def run(self, epochs=100):
+    def run(self, epochs:int=100):
         print(f'Min: {min(self.scores)} | Mean: {np.mean(self.scores)} | Max: {max(self.scores)}')
         for i in range(0, epochs):
             offsprings = self.crossover()
@@ -259,7 +259,7 @@ class LocationEvolution(OptimizationAlgorithm):
         best_idx = np.argsort(self.scores)[-1]
         best = self.population[best_idx]
         self.shops = best
-        return best
+        return self
     def plot_objective(self):
         fig, ax = plt.subplots()
         ax.plot(self.mins, color='red', linewidth=2)

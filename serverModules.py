@@ -9,8 +9,8 @@ import warnings
 
 @module.server
 def SA_server(input, output, session:Session):
-    result = reactive.Value("")
-    SAresult:LocationAnnealing = reactive.Value(None)
+    result:str = reactive.Value("")
+    SAlocations:gpd.GeoDataFrame = reactive.Value(None)
 
     @output
     @render.ui
@@ -81,11 +81,14 @@ def SA_server(input, output, session:Session):
                 prop_rejected = 0.999
             
             params = Parameters(
-                init=str(input.init()), move_choice=str(input.movement()),
+                init=str(input.init()),
+                move_choice=str(input.movement()),
                 neighbourhood=int(input.neighbourhood()),
-                n_shops=int(input.n_shops()), buffer=int(input.buffer()),
+                n_shops=int(input.n_shops()),
+                buffer=int(input.buffer()),
                 objective=objective,
-                n_evals=n_evals, prop_rejected=prop_rejected,
+                n_evals=n_evals,
+                prop_rejected=prop_rejected,
                 start_temp=int(input.init_temp()),
                 temp_mult=temp_mult,
                 temp_substr=temp_substr
@@ -94,13 +97,14 @@ def SA_server(input, output, session:Session):
             ui.notification_show('Annealing...', duration=1000, id='message')
             res, evals, status = la.run(params)
             ui.notification_remove('message')
-            SAresult.set(res)
-            if status==1:
-                ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
-            elif status==2:
-                ui.notification_show(f'{evals-1} iterations performed', duration=10, id='status')
-            elif status==3:
-                ui.notification_show(f'Exceeded proportion of rejected permutations after {evals-1} iterations', duration=10, id='status')
+            SAlocations.set(res.shops)
+            match status:
+                case 1:
+                    ui.notification_show(f'Population objective achieved after {evals-1} iterations', duration=10, id='status')
+                case 2:
+                    ui.notification_show(f'{evals-1} iterations performed', duration=10, id='status')
+                case 3:
+                    ui.notification_show(f'Exceeded proportion of rejected permutations after {evals-1} iterations', duration=10, id='status')
             proc = round(la.objective / la.grid['ludnosc'].sum() * 100, 2)
             result.set(f'Population covered: {round(la.objective)} ({proc}%)')
             fig, ax = la.plot_map()
@@ -127,14 +131,14 @@ def SA_server(input, output, session:Session):
     @output
     @render.plot(alt="Objective plot")
     def obj_plot():
-        result = SAresult()
+        result = SAlocations()
         if result is not None:
             result.plot_objective()
     
     @output
-    @render.plot(alt="Objective plot")
+    @render.plot(alt="Probability plot")
     def prob_plot():
-        result = SAresult()
+        result = SAlocations()
         if result is not None:
             result.plot_probs()
     
@@ -145,21 +149,21 @@ def SA_server(input, output, session:Session):
     
     @session.download(filename="results.csv")
     def download_results():
-        res:LocationAnnealing = SAresult()
+        res:gpd.GeoDataFrame = SAlocations()
+        yield 'id;X;Y\n'
         if res is not None:
-            ids = res.shops.index
-            x_coords = res.shops.geometry.centroid.x
-            y_coords = res.shops.geometry.centroid.y
-            yield 'id,X,Y\n'
+            ids = res.index
+            x_coords = res.geometry.centroid.x
+            y_coords = res.geometry.centroid.y
             for id, x, y in zip(ids, x_coords, y_coords):
-                yield f'{id},{x},{y}\n'
+                yield f'{id};{x};{y}\n'
 
 @module.server
 def GA_server(input, output, session):
-    initSA = reactive.Value("")
-    resultGA = reactive.Value("")
-    GAresult = reactive.Value(None)
-    SA_progress = reactive.Value(0)
+    resultSA:str = reactive.Value("")
+    resultGA:str = reactive.Value("")
+    GAlocations:gpd.GeoDataFrame = reactive.Value(None)
+    #SA_progress = reactive.Value(0)
 
     @output
     @render.ui
@@ -253,7 +257,7 @@ def GA_server(input, output, session):
 
                 results.sort(key = lambda x: x[0])
                 results = [r for i, r, params in results]
-                initSA.set(f'Best score from SA: {round(results[0].objective)}')
+                resultSA.set(f'Best score from SA: {round(results[0].objective)}')
                 p.set(60, 'Evolution...')
                 population = [res.shops for res in results]
                 le = LocationEvolution(data, resolution, population, results[0].buffer)
@@ -261,7 +265,7 @@ def GA_server(input, output, session):
                 p.set(95, 'Plotting...')
             proc = round(max(le.scores) / le.grid['ludnosc'].sum() * 100, 2)
             resultGA.set(f'Best score after GA: {round(max(le.scores))} ({proc}%)')
-            GAresult.set(res)
+            GAlocations.set(res.shops)
             le.plot_map()
 
     @output
@@ -285,7 +289,7 @@ def GA_server(input, output, session):
     @output
     @render.text
     def result_objective_start():
-        return str(initSA())
+        return str(resultSA())
     
     @output
     @render.text
@@ -294,11 +298,11 @@ def GA_server(input, output, session):
     
     @session.download(filename="results.csv")
     def download_results():
-        res:gpd.GeoDataFrame = GAresult()
+        res:gpd.GeoDataFrame = GAlocations()
+        yield 'id;X;Y\n'
         if res is not None:
             ids = res.index
             x_coords = res.geometry.centroid.x
             y_coords = res.geometry.centroid.y
-            yield 'id;X;Y\n'
             for id, x, y in zip(ids, x_coords, y_coords):
                 yield f'{id};{x};{y}\n'
