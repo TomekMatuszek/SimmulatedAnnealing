@@ -112,7 +112,7 @@ class LocationAnnealing(OptimizationAlgorithm):
         shops = self.shops.copy(deep=True)
         choice_idx = np.random.choice(self.shops.index.to_list())
         choice = self.centroids.iloc[choice_idx]
-        range = neighbourhood * self.resolution
+        range = neighbourhood * self.resolution * 1.5
         neighbors:pd.DataFrame = self.centroids[
             (self.centroids.X <= choice.X + range) & (self.centroids.X >= choice.X - range) & (self.centroids.Y <= choice.Y + range) & (self.centroids.Y >= choice.Y - range)
             & ~self.centroids.index.isin(shops.index.to_list())
