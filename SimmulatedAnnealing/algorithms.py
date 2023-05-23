@@ -223,7 +223,9 @@ class LocationEvolution(OptimizationAlgorithm):
         self.maxs = []
     def choose_parents(self) -> 'list[gpd.GeoDataFrame]':
         while True:
-            samples = list(np.random.choice(range(0, len(self.population)), size=2, replace=False))
+            base_weights = self.scores - min(self.scores)
+            weights = base_weights / sum(base_weights)
+            samples = list(np.random.choice(range(0, len(self.population)), size=2, replace=False, p=weights))
             parents = [self.population[i] for i in samples]
             if not bool(set(parents[0].index) & set(parents[1].index)):
                 break
