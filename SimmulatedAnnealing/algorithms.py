@@ -47,7 +47,7 @@ class OptimizationAlgorithm:
         fig, ax = plt.subplots()
         self.grid.plot(ax=ax, column='ludnosc', zorder=0)
         for key, line in self.points.items():
-            ax.plot(*zip(*line), color='black', linewidth=1, zorder=1)
+            ax.plot(*zip(*line), color='white', linewidth=1, zorder=1)
         self.shops.plot(ax=ax, color='red', zorder=2)
         self.shops.geometry.buffer(self.buffer).plot(ax=ax, facecolor='none', edgecolor='red', zorder=3)
         return fig, ax
