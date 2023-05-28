@@ -224,6 +224,8 @@ class LocationEvolution(OptimizationAlgorithm):
     def choose_parents(self) -> 'list[gpd.GeoDataFrame]':
         while True:
             base_weights = self.scores - min(self.scores)
+            print(base_weights)
+            print(sum(base_weights))
             weights = base_weights / sum(base_weights)
             print(weights)
             samples = list(np.random.choice(range(0, len(self.population)), size=2, replace=False, p=weights))
