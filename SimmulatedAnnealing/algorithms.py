@@ -217,7 +217,9 @@ class LocationEvolution(OptimizationAlgorithm):
         super().__init__(grid, resolution)
         self.buffer = buffer
         self.population = results
+        print(len(results))
         self.scores = [self.score(opt.index.to_list()) for opt in self.population]
+        print(self.scores)
         self.mins = []
         self.means = []
         self.maxs = []
