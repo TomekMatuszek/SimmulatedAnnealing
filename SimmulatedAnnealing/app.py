@@ -8,7 +8,7 @@ app_ui = ui.page_fluid(
     ui.h1(ui.HTML('<b>Simmulated annealing of shop locations</b>'), align='center'),
     ui.navset_tab_card(
         SA_ui('SA'),
-        GA_ui('GA'),
+        #GA_ui('GA'),
         ui.nav_spacer(),
         ui.nav_control(
             ui.a(
@@ -22,6 +22,6 @@ app_ui = ui.page_fluid(
 
 def server(input, output, session):
     SA_server('SA')
-    GA_server('GA')
+    #GA_server('GA')
 
 app = App(app_ui, server, debug=True)
